@@ -1,16 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>银发守护</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>银发守护 - 老人端</title>
     <style>
-        /* 让字变大，适合老人看 */
         body {
-            font-size: 28px;
-            text-align: center;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
             background: #f0f0f0;
+            font-size: 20px;
+            text-align: center;
             padding: 20px;
-            font-family: "微软雅黑", sans-serif;
+            margin: 0;
+            padding-bottom: 100px;
         }
         .btn {
             display: block;
@@ -22,80 +24,177 @@
             border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
+            letter-spacing: 2px;
         }
         .green { background: #2ecc71; color: white; }
+        .green:active { background: #27ae60; }
         .blue { background: #3498db; color: white; }
-        .red { background: #e74c3c; color: white; }
-        .status {
+        .blue:active { background: #2980b9; }
+        .red { 
+            background: #e74c3c; 
+            color: white; 
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 30px rgba(231, 76, 60, 0.4);
+        }
+        .red:active { background: #c0392b; }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+        .status-card {
             background: white;
-            padding: 20px;
-            border-radius: 15px;
+            padding: 24px;
+            border-radius: 16px;
             margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .loading {
+            display: none;
+            color: #666;
+            font-size: 16px;
         }
     </style>
 </head>
 <body>
 
-    <div class="status">
-        <h1>👴 银发守护</h1>
-        <p id="today">今天是：--</p>
-        <p id="msg" style="color: green; font-weight: bold;">今天还没打卡哦</p>
+    <div class="status-card">
+        <h1 style="margin:0 0 10px 0;">👴 银发守护</h1>
+        <p id="today" style="color:#666;margin:5px 0;">--</p>
+        <p id="msg" style="color: #e74c3c; font-weight: bold; font-size: 24px; margin:10px 0;">
+            今天还没打卡哦
+        </p>
+        <p class="loading" id="loading">正在同步...</p>
     </div>
 
-    <!-- 按钮1：打卡 -->
-    <button class="btn green" onclick="checkIn()">
+    <button class="btn green" id="checkInBtn" onclick="checkIn()">
         ✅ 我很好，平安打卡
     </button>
 
-    <!-- 按钮2：听问候 -->
     <button class="btn blue" onclick="sayHello()">
         🔊 听今日问候
     </button>
 
-    <!-- 按钮3：紧急呼救 -->
-    <button class="btn red" onclick="sos()" 
-            onmousedown="startSos()" onmouseup="cancelSos()" 
+    <button class="btn red" id="sosBtn" 
+            onmousedown="startSos()" onmouseup="cancelSos()"
             ontouchstart="startSos()" ontouchend="cancelSos()">
         🚨 按住3秒：紧急呼救
     </button>
+    <p style="color:#999;font-size:14px;">长按3秒触发，自动通知子女</p>
 
     <script>
-        // 显示今天的日期
+        const GIST_ID = 'cf06b6148ec1b8ba7db6cc142c1e96ed';
+
+        // 显示日期
         var d = new Date();
         document.getElementById('today').innerText = 
-            '今天是：' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+            d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+
+        // 页面加载时检查今日是否已打卡
+        window.onload = async function() {
+            await loadTodayStatus();
+        };
+
+        // 加载今日状态
+        async function loadTodayStatus() {
+            try {
+                const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                    headers: { 'Accept': 'application/vnd.github.v3+json' }
+                });
+                const gist = await res.json();
+                const content = JSON.parse(gist.files['silver-care-data.json'].content);
+                const elder = content.elder_001;
+                
+                if (elder && elder.status === 'checked_in' && elder.lastCheckIn) {
+                    const checkDate = new Date(elder.lastCheckIn).toDateString();
+                    const today = new Date().toDateString();
+                    
+                    if (checkDate === today) {
+                        document.getElementById('msg').innerText = '✅ 今日已打卡！';
+                        document.getElementById('msg').style.color = '#2ecc71';
+                        document.getElementById('checkInBtn').innerText = '✓ 今日已打卡';
+                        document.getElementById('checkInBtn').disabled = true;
+                        document.getElementById('checkInBtn').style.background = '#95a5a6';
+                    }
+                }
+            } catch(e) {
+                console.log('加载状态失败', e);
+            }
+        }
 
         // 打卡功能
-        function checkIn() {
-            document.getElementById('msg').innerText = '✅ 今日已打卡！';
-            document.getElementById('msg').style.color = 'green';
-            alert('打卡成功！子女会收到通知。');
-            // 这里可以加上：把打卡时间存到网上
+        async function checkIn() {
+            const btn = document.getElementById('checkInBtn');
+            const loading = document.getElementById('loading');
+            
+            btn.disabled = true;
+            loading.style.display = 'block';
+            
+            const now = new Date();
+            const newData = {
+                elder_001: {
+                    name: "张建国",
+                    status: "checked_in",
+                    lastCheckIn: now.toISOString(),
+                    timeString: now.toLocaleString('zh-CN'),
+                    mood: "开心"
+                }
+            };
+
+            try {
+                const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
+                    body: JSON.stringify({
+                        files: {
+                            'silver-care-data.json': {
+                                content: JSON.stringify(newData, null, 2)
+                            }
+                        }
+                    })
+                });
+
+                if (res.ok) {
+                    document.getElementById('msg').innerText = '✅ 打卡成功！子女已收到通知';
+                    document.getElementById('msg').style.color = '#2ecc71';
+                    btn.innerText = '✓ 今日已打卡';
+                    btn.style.background = '#95a5a6';
+                    alert('打卡成功！子女端会实时显示');
+                } else {
+                    const err = await res.json();
+                    throw new Error(err.message || '更新失败');
+                }
+            } catch (err) {
+                alert('打卡失败：' + err.message);
+                btn.disabled = false;
+            } finally {
+                loading.style.display = 'none';
+            }
         }
 
         // 语音问候
         function sayHello() {
-            var words = new SpeechSynthesisUtterance(
+            var msg = new SpeechSynthesisUtterance(
                 '早上好！今天感觉怎么样？记得按时吃药，有事按红色按钮，子女会马上知道。'
             );
-            words.lang = 'zh-CN';
-            words.rate = 0.8; // 说慢点
-            window.speechSynthesis.speak(words);
+            msg.lang = 'zh-CN';
+            msg.rate = 0.8;
+            window.speechSynthesis.speak(msg);
         }
 
-        // SOS紧急呼救
+        // SOS
         var sosTimer;
         function startSos() {
-            sosTimer = setTimeout(function() {
-                alert('🚨 求救信号已发送！\n\n子女将收到：\n1. 微信通知\n2. 短信通知\n3. 电话通知');
-                // 这里可以加上：真的发通知给子女
-            }, 3000); // 按住3秒
+            document.getElementById('sosBtn').innerText = '⏳ 按住3秒...';
+            sosTimer = setTimeout(async function() {
+                alert('🚨 求救信号已发送！\n\n子女将收到通知');
+            }, 3000);
         }
         function cancelSos() {
             clearTimeout(sosTimer);
-        }
-        function sos() {
-            // 防止点击触发
+            document.getElementById('sosBtn').innerText = '🚨 按住3秒：紧急呼救';
         }
     </script>
 
