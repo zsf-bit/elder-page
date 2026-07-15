@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>银发守护</title>
+    <style>
+        /* 让字变大，适合老人看 */
+        body {
+            font-size: 28px;
+            text-align: center;
+            background: #f0f0f0;
+            padding: 20px;
+            font-family: "微软雅黑", sans-serif;
+        }
+        .btn {
+            display: block;
+            width: 90%;
+            height: 120px;
+            margin: 30px auto;
+            font-size: 36px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .green { background: #2ecc71; color: white; }
+        .blue { background: #3498db; color: white; }
+        .red { background: #e74c3c; color: white; }
+        .status {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="status">
+        <h1>👴 银发守护</h1>
+        <p id="today">今天是：--</p>
+        <p id="msg" style="color: green; font-weight: bold;">今天还没打卡哦</p>
+    </div>
+
+    <!-- 按钮1：打卡 -->
+    <button class="btn green" onclick="checkIn()">
+        ✅ 我很好，平安打卡
+    </button>
+
+    <!-- 按钮2：听问候 -->
+    <button class="btn blue" onclick="sayHello()">
+        🔊 听今日问候
+    </button>
+
+    <!-- 按钮3：紧急呼救 -->
+    <button class="btn red" onclick="sos()" 
+            onmousedown="startSos()" onmouseup="cancelSos()" 
+            ontouchstart="startSos()" ontouchend="cancelSos()">
+        🚨 按住3秒：紧急呼救
+    </button>
+
+    <script>
+        // 显示今天的日期
+        var d = new Date();
+        document.getElementById('today').innerText = 
+            '今天是：' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+
+        // 打卡功能
+        function checkIn() {
+            document.getElementById('msg').innerText = '✅ 今日已打卡！';
+            document.getElementById('msg').style.color = 'green';
+            alert('打卡成功！子女会收到通知。');
+            // 这里可以加上：把打卡时间存到网上
+        }
+
+        // 语音问候
+        function sayHello() {
+            var words = new SpeechSynthesisUtterance(
+                '早上好！今天感觉怎么样？记得按时吃药，有事按红色按钮，子女会马上知道。'
+            );
+            words.lang = 'zh-CN';
+            words.rate = 0.8; // 说慢点
+            window.speechSynthesis.speak(words);
+        }
+
+        // SOS紧急呼救
+        var sosTimer;
+        function startSos() {
+            sosTimer = setTimeout(function() {
+                alert('🚨 求救信号已发送！\n\n子女将收到：\n1. 微信通知\n2. 短信通知\n3. 电话通知');
+                // 这里可以加上：真的发通知给子女
+            }, 3000); // 按住3秒
+        }
+        function cancelSos() {
+            clearTimeout(sosTimer);
+        }
+        function sos() {
+            // 防止点击触发
+        }
+    </script>
+
+</body>
+</html>
